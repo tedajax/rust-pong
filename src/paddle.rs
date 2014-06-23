@@ -2,6 +2,7 @@ use sdl2::;
 use sdl2::render::Renderer;
 use sdl2::video::Window;
 use sdl2::rect::Rect;
+use config::Config;
 
 static paddle_color: sdl2::pixels::Color = sdl2::pixels::RGB(255, 255, 255);
 
@@ -9,26 +10,36 @@ pub struct Paddle {
 	position: ::vec2::Vec2,
 	width: f32,
 	height: f32,
+	top_boundary: f32,
+	bottom_boundary: f32,
 }
 
 impl Paddle {
-	pub fn new(x: f32, y: f32) -> Paddle {
+	pub fn new(x: f32, y: f32, config: Config) -> Paddle {
+		let half_height = config.paddle_height / 2f32;
+		let top = half_height + config.top_boundary;
+		let bottom = config.screen_height -
+					 half_height -
+					 config.bottom_boundary;
+
 		Paddle { 
 			position: ::vec2::Vec2::new(x, y),
-			width: 20.0f32,
-			height: 200.0f32,
+			width: config.paddle_width,
+			height: config.paddle_height,
+			top_boundary: top,
+			bottom_boundary: bottom,
 		}
 	}
 
 	pub fn move(&mut self, vel_y: f32) {
 		self.position.y += vel_y;
 
-		if self.position.y < self.height / 2f32 {
-			self.position.y = self.height / 2f32;
+		if self.position.y < self.top_boundary {
+			self.position.y = self.top_boundary;
 		}
 
-		if self.position.y > 600f32 - (self.height / 2f32) {
-			self.position.y = 600f32 - (self.height / 2f32);
+		if self.position.y > self.bottom_boundary {
+			self.position.y = self.bottom_boundary;
 		}
 	}
 
