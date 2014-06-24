@@ -45,6 +45,11 @@ impl Vec2 {
 		}
 	}
 
+	pub fn to_angle(&self) -> f32 {
+		let pi: f32 = Float::pi();
+		self.x.atan2(self.y) + pi
+	}
+
 	pub fn perpendicular(&self) -> Vec2 {
 		Vec2 {
 			x: self.y,

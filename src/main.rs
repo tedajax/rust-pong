@@ -9,6 +9,7 @@ mod ball;
 mod vec2;
 mod input;
 mod config;
+mod util;
 
 static game_config: config::Config = config::Config {
 	screen_width: 800.0f32,

@@ -7,9 +7,9 @@ use config::Config;
 static paddle_color: sdl2::pixels::Color = sdl2::pixels::RGB(255, 255, 255);
 
 pub struct Paddle {
-	position: ::vec2::Vec2,
-	width: f32,
-	height: f32,
+	pub position: ::vec2::Vec2,
+	pub width: f32,
+	pub height: f32,
 	top_boundary: f32,
 	bottom_boundary: f32,
 }

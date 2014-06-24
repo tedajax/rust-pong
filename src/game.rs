@@ -49,11 +49,14 @@ impl Game {
 		let left_paddle_pos = paddle_offset;
 		let right_paddle_pos = (config.screen_width as f32) - paddle_offset;
 
+		let left_paddle = Paddle::new(left_paddle_pos, 300.0, config);
+		let right_paddle = Paddle::new(right_paddle_pos, 300.0, config);
+
 		Game { 
 			renderer: renderer,
-			left_paddle: Paddle::new(left_paddle_pos, 300.0, config),
-			right_paddle: Paddle::new(right_paddle_pos, 300.0, config),
-			ball: Ball::new(config),
+			left_paddle: left_paddle,
+			right_paddle: right_paddle,
+			ball: Ball::new(config, &left_paddle, &right_paddle),
 			input: Input::new(),
 			last_tick: 0,
 			config: config,
