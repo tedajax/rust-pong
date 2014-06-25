@@ -6,6 +6,8 @@ use sdl2::render::Renderer;
 use sdl2::video::Window;
 use sdl2::rect::Rect;
 
+use std::rc::Rc;
+
 use vec2::Vec2;
 use config::Config;
 use paddle::Paddle;
@@ -26,12 +28,12 @@ pub struct Ball {
 	size: f32,
 	top_boundary: f32,
 	bottom_boundary: f32,
-	left_paddle: *Paddle,
-	right_paddle: *Paddle,
+	left_paddle: Rc<Paddle>,
+	right_paddle: Rc<Paddle>,
 }
 
 impl Ball {
-	pub fn new(config: Config, left: &Paddle, right: &Paddle) -> Ball {
+	pub fn new(config: Config, left: Paddle, right: Paddle) -> Ball {
 		let x = config.screen_width / 2_f32;
 		let y = config.screen_height / 2_f32;
 		let size = 10_f32;
@@ -49,8 +51,8 @@ impl Ball {
 			size: size,
 			top_boundary: top,
 			bottom_boundary: bottom,
-			left_paddle: left,
-			right_paddle: right,
+			left_paddle: Rc::new(left),
+			right_paddle: Rc::new(right),
 		}
 	}
 
@@ -68,8 +70,6 @@ impl Ball {
 		if rng.gen() {
 			self.angle += pi;
 		}
-
-		self.angle = 0_f32;
 
 		self.wrap_angle();
 
@@ -127,32 +127,51 @@ impl Ball {
 		if self.position.x - self.size > paddle.position.x + pw { return -1; }
 
 		// above
-		if self.position.y + self.size < paddle.position.y - ph { return -1; }
+		if self.position.y + self.size < paddle.position.y - ph { println!("above"); return -1; }
 
 		// below
-		if self.position.y - self.size > paddle.position.y + ph { return -1; }
+		if self.position.y - self.size > paddle.position.y + ph { 
+			println!("{} {}, {} {}", self.position.y, self.size, paddle.position.y, ph);
+			println!("{} {}", self.position.y - self.size, paddle.position.y + ph);
+			println!("below"); 
+			return -1; 
+		}
 
 		let segments = PADDLE_RESPONSES.len() as f32;
 		let intersect_height: f32 = self.size * 2_f32 + paddle.height;
 		let segment_height: f32 = intersect_height / segments;
+		let paddle_top: f32 = paddle.position.y - ph - self.size;
+		let by = self.position.y - paddle_top;		
 
 		for i in range(0, PADDLE_RESPONSES.len()) {
-			println!("{}", i)
+			let segment = segment_height * ((i + 1) as f32);
+			if by <= segment {
+				return i as i32;
+			}
 		}
 
 		return -1;
 	}
 
 	fn check_paddles(&mut self) {
-		unsafe {
-			self.check_paddle(&*self.left_paddle);
+		let li = self.check_paddle(&*self.left_paddle);
+		//let ri = self.check_paddle(&*self.right_paddle);
+		let ri = -1;
+
+		if li >= 0 {
+			if self.angle.cos() < 0_f32 {
+				self.bounce_horizontal();
+			}
+		}
+
+		if ri >= 0 {
+			if self.angle.cos() > 0_f32 {
+				self.bounce_horizontal();
+			}
 		}
 	}
 
 	pub fn update(&mut self, dt: f32) {
-		let pi: f32 = Float::pi();
-		self.angle -= pi / 4_f32 * dt;
-
 		let vel = ::vec2::Vec2 {
 			x: self.angle.cos() * self.speed * dt,
 			y: self.angle.sin() * self.speed * dt,
@@ -161,6 +180,7 @@ impl Ball {
 
 		self.check_sides();
 		self.check_goal();
+		self.check_paddles();
 	}
 
 	pub fn render(&self, renderer: &Renderer<Window>) {

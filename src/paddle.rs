@@ -41,6 +41,8 @@ impl Paddle {
 		if self.position.y > self.bottom_boundary {
 			self.position.y = self.bottom_boundary;
 		}
+
+		println!("{}", self.position.y);
 	}
 
 	pub fn render(&self, renderer: &Renderer<Window>) {

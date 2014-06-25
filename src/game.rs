@@ -56,7 +56,7 @@ impl Game {
 			renderer: renderer,
 			left_paddle: left_paddle,
 			right_paddle: right_paddle,
-			ball: Ball::new(config, &left_paddle, &right_paddle),
+			ball: Ball::new(config, left_paddle, right_paddle),
 			input: Input::new(),
 			last_tick: 0,
 			config: config,
