@@ -56,7 +56,7 @@ impl Game {
 			renderer: renderer,
 			left_paddle: left_paddle,
 			right_paddle: right_paddle,
-			ball: Ball::new(config, left_paddle, right_paddle),
+			ball: Ball::new(config),
 			input: Input::new(),
 			last_tick: 0,
 			config: config,
@@ -106,7 +106,7 @@ impl Game {
 			self.right_paddle.move(paddle_speed);
 		}
 
-		self.ball.update(dt);
+		self.ball.update(dt, &self.left_paddle, &self.right_paddle);
 
 		self.input.update();
 	}

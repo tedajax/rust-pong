@@ -12,12 +12,6 @@ use vec2::Vec2;
 use config::Config;
 use paddle::Paddle;
 
-static PADDLE_RESPONSES: [f32, ..3] = [
-	-1_f32,
-	0_f32,
-	1_f32
-];
-
 pub struct Ball {
 	position: ::vec2::Vec2,
 	start_position: ::vec2::Vec2,
@@ -28,12 +22,10 @@ pub struct Ball {
 	size: f32,
 	top_boundary: f32,
 	bottom_boundary: f32,
-	left_paddle: Rc<Paddle>,
-	right_paddle: Rc<Paddle>,
 }
 
 impl Ball {
-	pub fn new(config: Config, left: Paddle, right: Paddle) -> Ball {
+	pub fn new(config: Config) -> Ball {
 		let x = config.screen_width / 2_f32;
 		let y = config.screen_height / 2_f32;
 		let size = 10_f32;
@@ -51,8 +43,6 @@ impl Ball {
 			size: size,
 			top_boundary: top,
 			bottom_boundary: bottom,
-			left_paddle: Rc::new(left),
-			right_paddle: Rc::new(right),
 		}
 	}
 
@@ -91,11 +81,19 @@ impl Ball {
 		self.wrap_angle();
 	}
 
-	fn bounce_horizontal(&mut self) {
+	fn bounce_horizontal(&mut self, angle_scale: f32, dir: i32) {
 		let pi: f32 = Float::pi();
-		self.angle = pi - self.angle;
+		let max_angle: f32 = 75_f32 * pi / 180_f32;
+		let angle = (pi * 2_f32) - (max_angle * angle_scale);
 
-		self.wrap_angle();		
+		self.angle = angle;
+
+		if dir == 1 {
+			self.angle += pi;
+			self.angle = (pi * 2_f32) - self.angle;
+		}
+
+		self.wrap_angle();
 	}
 
 	fn check_sides(&mut self) {
@@ -115,63 +113,50 @@ impl Ball {
 		}
 	}
 
-	// returns paddle section hit or -1 if paddle not hit
-	fn check_paddle(&self, paddle: &Paddle) -> i32 {
+	// if true paddle is hit and dist is set to normalized relative distance
+	// from center of paddle.
+	fn check_paddle(&self, paddle: &Paddle) -> (bool, f32) {
 		let pw = paddle.width / 2_f32;
 		let ph = paddle.height / 2_f32;
+		let s = self.size;
+
+		let no_hit = (false, 0_f32);
 
 		// to the left
-		if self.position.x + self.size < paddle.position.x - pw { return -1; }
+		if self.position.x + s < paddle.position.x - pw { return no_hit; }
 
 		// to the right
-		if self.position.x - self.size > paddle.position.x + pw { return -1; }
+		if self.position.x - s > paddle.position.x + pw { return no_hit; }
 
 		// above
-		if self.position.y + self.size < paddle.position.y - ph { println!("above"); return -1; }
+		if self.position.y + s < paddle.position.y - ph { return no_hit; }
 
 		// below
-		if self.position.y - self.size > paddle.position.y + ph { 
-			println!("{} {}, {} {}", self.position.y, self.size, paddle.position.y, ph);
-			println!("{} {}", self.position.y - self.size, paddle.position.y + ph);
-			println!("below"); 
-			return -1; 
-		}
+		if self.position.y - s > paddle.position.y + ph { return no_hit; }
 
-		let segments = PADDLE_RESPONSES.len() as f32;
-		let intersect_height: f32 = self.size * 2_f32 + paddle.height;
-		let segment_height: f32 = intersect_height / segments;
-		let paddle_top: f32 = paddle.position.y - ph - self.size;
-		let by = self.position.y - paddle_top;		
+		let dist = (paddle.position.y - self.position.y) / (ph + s);
 
-		for i in range(0, PADDLE_RESPONSES.len()) {
-			let segment = segment_height * ((i + 1) as f32);
-			if by <= segment {
-				return i as i32;
-			}
-		}
-
-		return -1;
+		return (true, dist);
 	}
 
-	fn check_paddles(&mut self) {
-		let li = self.check_paddle(&*self.left_paddle);
-		//let ri = self.check_paddle(&*self.right_paddle);
-		let ri = -1;
+	fn check_paddles(&mut self, left: &Paddle, right: &Paddle) {
+		let (left_hit, ld) = self.check_paddle(left);
+		let (right_hit, rd) = self.check_paddle(right);
+		
+		let dir = Vec2::from_angle(self.angle).x.signum() as i32;
 
-		if li >= 0 {
-			if self.angle.cos() < 0_f32 {
-				self.bounce_horizontal();
-			}
+		if left_hit && dir == -1 {
+			self.bounce_horizontal(ld, dir);
+			self.speed += 250_f32;
 		}
 
-		if ri >= 0 {
-			if self.angle.cos() > 0_f32 {
-				self.bounce_horizontal();
-			}
+		if right_hit && dir == 1 {
+			self.bounce_horizontal(rd, dir);
+			self.speed += 250_f32;
 		}
 	}
 
-	pub fn update(&mut self, dt: f32) {
+	pub fn update(&mut self, dt: f32, left: &Paddle, right: &Paddle) {
 		let vel = ::vec2::Vec2 {
 			x: self.angle.cos() * self.speed * dt,
 			y: self.angle.sin() * self.speed * dt,
@@ -180,7 +165,10 @@ impl Ball {
 
 		self.check_sides();
 		self.check_goal();
-		self.check_paddles();
+		self.check_paddles(left, right);
+
+		self.speed -= 50_f32 * dt;
+		self.speed = ::util::clampf(self.speed, self.min_speed, self.max_speed);
 	}
 
 	pub fn render(&self, renderer: &Renderer<Window>) {

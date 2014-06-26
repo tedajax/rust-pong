@@ -13,6 +13,13 @@ impl Vec2 {
 		}
 	}
 
+	pub fn from_angle(angle: f32) -> Vec2 {
+		Vec2 {
+			x: angle.cos(),
+			y: angle.sin(),
+		}
+	}
+
 	pub fn zero() -> Vec2 {
 		Vec2 { x: 0.0f32, y: 0.0f32 }
 	}
