@@ -38,7 +38,7 @@ impl Ball {
 			start_position: ::vec2::Vec2::new(x, y),
 			angle: 0_f32,
 			speed: 0_f32,
-			min_speed: 200_f32,
+			min_speed: 300_f32,
 			max_speed: 500_f32,
 			size: size,
 			top_boundary: top,
